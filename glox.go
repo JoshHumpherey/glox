@@ -3,35 +3,35 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"glox/lox_error"
 	"glox/scanner"
 	"os"
 )
 
 const errorExit = 65
 
-var hadError = false
-
 func main() {
 	args := os.Args[1:]
+	errorHandler := lox_error.ErrorHandler{}
 	switch len(args) {
 	case 0:
-		runPrompt()
+		runPrompt(errorHandler)
 	case 1:
-		runFile(args[1])
+		runFile(args[1], errorHandler)
 	default:
 		panic(fmt.Errorf("usage: glox [script]"))
 	}
 }
 
-func runFile(filePath string) {
+func runFile(filePath string, errorHandler lox_error.ErrorHandler) {
 	data, _ := os.ReadFile(filePath)
 	run(string(data))
-	if hadError {
+	if errorHandler.HadError {
 		os.Exit(errorExit)
 	}
 }
 
-func runPrompt() {
+func runPrompt(errorHandler lox_error.ErrorHandler) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
@@ -40,7 +40,7 @@ func runPrompt() {
 			return
 		}
 		run(line)
-		hadError = false
+		errorHandler.HadError = false
 	}
 }
 
@@ -51,13 +51,4 @@ func run(source string) {
 	for token := range t {
 		fmt.Println(token)
 	}
-}
-
-func loxError(l int, msg string) {
-	report(l, "", msg)
-}
-
-func report(l int, where, msg string) {
-	fmt.Printf("[line %d] Error%s: %s", l, where, msg)
-	hadError = true
 }
