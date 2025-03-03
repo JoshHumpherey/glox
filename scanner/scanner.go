@@ -76,6 +76,21 @@ func (s *Scanner) scanToken() {
 		} else {
 			s.addToken(token.GREATER)
 		}
+	case '/':
+		if s.match('/') {
+			for s.peek() != '\n' && !s.isAtEnd() {
+				s.advance()
+			}
+		} else {
+			s.addToken(token.SLASH)
+		}
+	case ' ':
+	case '\r':
+	case '\t':
+		// Ignore Whitespace
+		break
+	case '\n':
+		s.line++
 	default:
 		s.errorHandler.Report(lox_error.Error{
 			Message: fmt.Sprintf("Unexpected Character: '%v'", c),
@@ -110,4 +125,11 @@ func (s *Scanner) match(expected rune) bool {
 	}
 	s.current++
 	return true
+}
+
+func (s *Scanner) peek() rune {
+	if s.isAtEnd() {
+		return 0x0
+	}
+	return rune(s.Source[s.current])
 }
