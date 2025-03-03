@@ -16,6 +16,25 @@ type Scanner struct {
 	line         int
 }
 
+var keywords = map[string]int{
+	"and":    token.AND,
+	"class":  token.CLASS,
+	"else":   token.ELSE,
+	"false":  token.FALSE,
+	"for":    token.FOR,
+	"fun":    token.FUN,
+	"if":     token.IF,
+	"nil":    token.NIL,
+	"or":     token.OR,
+	"print":  token.PRINT,
+	"return": token.RETURN,
+	"super":  token.SUPER,
+	"this":   token.THIS,
+	"true":   token.TRUE,
+	"var":    token.VAR,
+	"while":  token.WHILE,
+}
+
 func (s *Scanner) ScanTokens() []token.Token {
 	tokens := []token.Token{}
 	s.line = 1
@@ -96,11 +115,14 @@ func (s *Scanner) scanToken() {
 		s.string()
 	default:
 		if isDigit(c) {
-
+			s.number()
+		} else if isAlpha(c) {
+			s.identifier()
+		} else {
+			s.errorHandler.Report(lox_error.Error{
+				Message: fmt.Sprintf("Unexpected Character: '%v'", c),
+			})
 		}
-		s.errorHandler.Report(lox_error.Error{
-			Message: fmt.Sprintf("Unexpected Character: '%v'", c),
-		})
 	}
 }
 
@@ -144,7 +166,7 @@ func (s *Scanner) peekNext() rune {
 	if s.current+1 >= len(s.Source) {
 		return 0x0
 	}
-	return s.Source[s.current+1]
+	return rune(s.Source[s.current+1])
 }
 
 func (s *Scanner) string() {
@@ -181,6 +203,28 @@ func (s *Scanner) number() {
 
 	floatVal, _ := strconv.ParseFloat(s.Source[s.start:s.current], 64)
 	s.addTokenWithLiteral(token.NUMBER, floatVal)
+}
+
+func (s *Scanner) identifier() {
+	for isAlphaNumeric(s.peek()) {
+		s.advance()
+	}
+
+	text := s.Source[s.start:s.current]
+	tokenType, isReservedWord := keywords[text]
+	if isReservedWord {
+		s.addToken(tokenType)
+	} else {
+		s.addTokenWithLiteral(token.IDENTIFIER, text)
+	}
+}
+
+func isAlphaNumeric(c rune) bool {
+	return isAlpha(c) || isDigit(c)
+}
+
+func isAlpha(c rune) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
 }
 
 func isDigit(c rune) bool {
