@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"glox/lox_error"
 	"glox/token"
+	"strconv"
 )
 
 type Scanner struct {
@@ -87,11 +88,16 @@ func (s *Scanner) scanToken() {
 	case ' ':
 	case '\r':
 	case '\t':
-		// Ignore Whitespace
+		// Ignore whitespace
 		break
 	case '\n':
 		s.line++
+	case '"':
+		s.string()
 	default:
+		if isDigit(c) {
+
+		}
 		s.errorHandler.Report(lox_error.Error{
 			Message: fmt.Sprintf("Unexpected Character: '%v'", c),
 		})
@@ -132,4 +138,51 @@ func (s *Scanner) peek() rune {
 		return 0x0
 	}
 	return rune(s.Source[s.current])
+}
+
+func (s *Scanner) peekNext() rune {
+	if s.current+1 >= len(s.Source) {
+		return 0x0
+	}
+	return s.Source[s.current+1]
+}
+
+func (s *Scanner) string() {
+	for s.peek() != '"' {
+		if s.peek() == '\n' {
+			s.line++
+		}
+		s.advance()
+	}
+
+	if s.isAtEnd() {
+		s.errorHandler.Report(lox_error.Error{
+			Line:    s.line,
+			Message: "Unterminated String",
+		})
+	}
+
+	// handle the closing " character
+	s.advance()
+
+	value := s.Source[s.start+1 : s.current-1]
+	s.addTokenWithLiteral(token.STRING, value)
+}
+
+func (s *Scanner) number() {
+	for isDigit(s.peek()) {
+		s.advance()
+	}
+
+	// Look for a fractional part
+	if s.peek() == '.' && isDigit(s.peekNext()) {
+		s.advance()
+	}
+
+	floatVal, _ := strconv.ParseFloat(s.Source[s.start:s.current], 64)
+	s.addTokenWithLiteral(token.NUMBER, floatVal)
+}
+
+func isDigit(c rune) bool {
+	return c >= '0' && c <= '9'
 }
